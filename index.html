@@ -4,115 +4,809 @@
   <meta charset="UTF-8">
   <title>RFP ROI Calculator & Success Plan</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
-    label { display: block; margin-top: 16px; font-weight: bold; }
-    input, textarea, select { width: 100%; padding: 8px; margin-top: 4px; }
-    .helper { font-size: 13px; color: #666; margin-bottom: 8px; }
-    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; margin-right: 10px; }
-    .result, .success-plan { margin-top: 24px; font-size: 16px; background: #f7f7f7; padding: 20px; border-radius: 8px; display: none; }
-    .result strong, .success-plan strong { font-size: 18px; }
-    canvas { margin-top: 30px; }
-    #emailSummaryWrapper { margin-top: 24px; display: none; }
-    #emailSummary { width: 100%; height: 300px; font-family: monospace; padding: 12px; }
+    /* Modern CSS Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Variables */
+    :root {
+      /* Primary Colors */
+      --primary-orange: #FF6B2C;
+      --primary-dark-orange: #E85A1F;
+      --primary-blue: #0C2542;
+      --primary-dark-blue: #091D33;
+      --secondary-color: #4A5568;
+      
+      /* Background Colors */
+      --background-color: #ffffff;
+      --gray-light: #F7FAFC;
+      --gray-medium: #E2E8F0;
+      --gray-dark: #2D3748;
+      --section-alt: #F8FAFC;
+      
+      /* Text Colors */
+      --text-color: #0C2542;
+      --text-light: #718096;
+      --text-white: #ffffff;
+      
+      /* Status Colors */
+      --success-color: #48BB78;
+      --warning-color: #F6AD55;
+      --error-color: #F56565;
+      
+      /* Layout */
+      --max-width: 1000px;
+      --border-radius: 6px;
+    }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background: linear-gradient(135deg, #f6f9fc 0%, #edf2f7 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 40px;
+      background-color: var(--background-color);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--gray-medium);
+    }
+
+    .logo-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-container img {
+      max-width: 180px;
+      height: auto;
+      transition: transform 0.3s ease;
+    }
+
+    .logo-container img:hover {
+      transform: scale(1.05);
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      color: var(--primary-blue);
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-light);
+      font-size: 1.1rem;
+      margin-top: 0.5rem;
+      font-weight: 500;
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    h3 {
+      color: var(--primary-blue);
+      line-height: 1.2;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      border-bottom: 1px solid var(--gray-medium);
+      padding-bottom: 0.5rem;
+    }
+
+    label { 
+      display: block; 
+      margin-top: 16px; 
+      font-weight: 600; 
+      color: var(--primary-blue);
+      font-size: 1rem;
+    }
+
+    input, textarea, select { 
+      width: 100%; 
+      padding: 12px; 
+      margin-top: 6px;
+      border: 1px solid var(--gray-medium); 
+      border-radius: var(--border-radius);
+      font-family: inherit;
+      font-size: 1rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-orange);
+      box-shadow: 0 0 0 2px rgba(255, 107, 44, 0.2);
+    }
+
+    .helper { 
+      font-size: 0.875rem; 
+      color: var(--text-light); 
+      margin-top: 4px;
+      margin-bottom: 8px; 
+    }
+    
+    button { 
+      background-color: var(--primary-orange);
+      color: var(--text-white);
+      border: none;
+      border-radius: var(--border-radius); 
+      margin-top: 24px; 
+      padding: 12px 24px; 
+      font-size: 1rem; 
+      font-weight: 600;
+      margin-right: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark-orange);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button + button {
+      background-color: var(--gray-light);
+      color: var(--text-color);
+      border: 1px solid var(--gray-medium);
+    }
+
+    button + button:hover {
+      background-color: var(--gray-medium);
+    }
+    
+    .result, .success-plan { 
+      margin-top: 32px; 
+      font-size: 1rem; 
+      background: var(--gray-light); 
+      padding: 24px; 
+      border-radius: var(--border-radius); 
+      display: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--gray-medium);
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    
+    .result strong, .success-plan strong { 
+      font-size: 1.1rem; 
+      color: var(--primary-blue);
+    }
+    
+    canvas { 
+      margin-top: 30px;
+      max-width: 100%;
+    }
+    
+    #emailSummaryWrapper { 
+      margin-top: 32px; 
+      display: none;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    
+    #emailSummary { 
+      width: 100%; 
+      height: 300px; 
+      font-family: monospace; 
+      padding: 16px;
+      border: 1px solid var(--gray-medium);
+      border-radius: var(--border-radius);
+      font-size: 0.9rem;
+    }
+
+    #planSummary {
+      margin-top: 24px;
+    }
+
+    #planSummary h2 {
+      text-align: left;
+      font-size: 1.75rem;
+    }
+
+    #planSummary h3 {
+      color: var(--primary-orange);
+      font-size: 1.25rem;
+      border-bottom: none;
+    }
+
+    #planSummary ul {
+      margin-left: 20px;
+    }
+
+    #planSummary section {
+      margin-bottom: 24px;
+    }
+
+    #downloadLink {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: var(--primary-blue);
+      color: var(--text-white);
+      text-decoration: none;
+      border-radius: var(--border-radius);
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    #downloadLink:hover {
+      background-color: var(--primary-dark-blue);
+    }
+
+    /* Chart styles */
+    #chartContainer {
+      display: none;
+      margin: 30px 0;
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    .chart-row {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 0 -12px 24px;
+    }
+
+    .chart-column {
+      flex: 1 1 calc(50% - 24px);
+      margin: 0 12px 24px;
+      min-width: 300px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: var(--border-radius);
+      background: var(--background-color);
+      padding: 16px;
+      border: 1px solid var(--gray-medium);
+    }
+
+    .chart-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--primary-blue);
+      text-align: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--gray-medium);
+    }
+
+    .chart-stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      height: 100%;
+      align-items: center;
+    }
+
+    .stat-card {
+      padding: 20px;
+      text-align: center;
+      border-radius: var(--border-radius);
+      background: var(--gray-light);
+      min-width: 120px;
+      margin: 8px;
+      flex: 1;
+      border: 1px solid var(--gray-medium);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-card.highlight {
+      background: var(--primary-blue);
+      color: var(--text-white);
+      border: none;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--primary-orange);
+    }
+
+    .stat-card.highlight .stat-value {
+      color: var(--text-white);
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    .stat-card.highlight .stat-label {
+      color: var(--gray-light);
+    }
+
+    /* Canvas container styling */
+    canvas {
+      max-height: 280px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+      
+      .container {
+        padding: 20px;
+        border-radius: 12px;
+      }
+      
+      .header {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+      }
+      
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      button {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 12px;
+      }
+
+      .chart-column {
+        flex: 1 1 100%;
+        margin: 0 0 20px;
+      }
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .result-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .result-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-card.primary {
+      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark-blue) 100%);
+      color: white;
+    }
+
+    .result-card.primary .result-value {
+      color: var(--primary-orange);
+    }
+
+    .result-card.primary .result-label {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .result-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-blue);
+      margin-bottom: 8px;
+    }
+
+    .result-label {
+      font-size: 1rem;
+      color: var(--text-light);
+      font-weight: 500;
+    }
+
+    .calculation-details {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-top: 24px;
+    }
+
+    .calculation-details h3 {
+      color: var(--primary-blue);
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      border-bottom: none;
+    }
+
+    .calculation-step {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--gray-medium);
+    }
+
+    .calculation-step:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .calculation-step strong {
+      color: var(--primary-blue);
+    }
+
+    .callout-box {
+      margin-top: 32px;
+      padding: 24px;
+      background: linear-gradient(135deg, #FFF5F5 0%, #FED7D7 100%);
+      border-left: 4px solid var(--error-color);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .callout-icon {
+      font-size: 2rem;
+      color: var(--error-color);
+    }
+
+    .callout-content {
+      flex: 1;
+    }
+
+    .callout-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--error-color);
+      margin-bottom: 4px;
+    }
+
+    .callout-text {
+      color: var(--text-color);
+      font-size: 1.1rem;
+    }
+
+    .callout-value {
+      font-weight: 700;
+      color: var(--error-color);
+    }
+
+    @media (max-width: 768px) {
+      .results-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+
+    .success-plan {
+      margin-top: 32px;
+      font-size: 1rem;
+      background: var(--gray-light);
+      padding: 32px;
+      border-radius: 16px;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--gray-medium);
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    .success-plan-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .success-plan-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .success-plan-card h3 {
+      color: var(--primary-orange);
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--gray-medium);
+    }
+
+    .stakeholder-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .stakeholder-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-medium);
+    }
+
+    .stakeholder-item:last-child {
+      border-bottom: none;
+    }
+
+    .stakeholder-label {
+      font-weight: 600;
+      color: var(--primary-blue);
+      min-width: 140px;
+    }
+
+    .stakeholder-value {
+      color: var(--text-color);
+    }
+
+    .timeline-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-medium);
+    }
+
+    .timeline-item:last-child {
+      border-bottom: none;
+    }
+
+    .timeline-date {
+      font-weight: 600;
+      color: var(--primary-blue);
+      min-width: 140px;
+    }
+
+    .timeline-label {
+      color: var(--text-color);
+    }
+
+    .risks-section {
+      background: #FFF5F5;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--error-color);
+      margin-top: 24px;
+    }
+
+    .risks-section h3 {
+      color: var(--error-color);
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .success-plan-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .success-plan {
+        padding: 20px;
+      }
+    }
   </style>
 </head>
 <body>
+<div class="container">
+  <div class="header">
+    <div class="logo-container">
+      <img src="rocket.png" alt="Logo">
+    </div>
+    <h2>ROI Estimator</h2>
+    <div class="subtitle">Calculate your potential return on investment</div>
+  </div>
 
-<h2>RFP ROI Calculator</h2>
+  <!-- Input Fields -->
+  <div class="input-grid">
+    <div class="input-group">
+      <label>RFPs per month</label>
+      <input type="number" id="rfpsPerMonth">
+    </div>
 
-<!-- Input Fields -->
-<label>RFPs per month</label>
-<input type="number" id="rfpsPerMonth">
+    <div class="input-group">
+      <label>Win rate (%)</label>
+      <input type="number" id="winRate">
+    </div>
 
-<label>Win rate (%)</label>
-<input type="number" id="winRate">
+    <div class="input-group">
+      <label>Average deal size ($)</label>
+      <input type="number" id="dealSize">
+    </div>
 
-<label>Average deal size ($)</label>
-<input type="number" id="dealSize">
+    <div class="input-group">
+      <label>Hours to complete one RFP</label>
+      <input type="number" id="hoursPerRFP">
+    </div>
 
-<label>Hours to complete one RFP</label>
-<input type="number" id="hoursPerRFP">
+    <div class="input-group">
+      <label>Team members per RFP</label>
+      <input type="number" id="teamSize">
+    </div>
 
-<label>Team members per RFP</label>
-<input type="number" id="teamSize">
+    <div class="input-group">
+      <label>Avg hourly cost ($)</label>
+      <input type="number" id="hourlyCost">
+    </div>
 
-<label>Avg hourly cost ($)</label>
-<input type="number" id="hourlyCost">
+    <div class="input-group">
+      <label>Reusable content (%)</label>
+      <input type="number" id="reusePercent">
+    </div>
 
-<label>Reusable content (%)</label>
-<input type="number" id="reusePercent">
+    <div class="input-group">
+      <label>Time saved per RFP (hrs)</label>
+      <input type="number" id="timeSavingsPerRFP">
+    </div>
 
-<label>Time saved per RFP (hrs)</label>
-<input type="number" id="timeSavingsPerRFP">
+    <div class="input-group">
+      <label>Missed RFPs per month</label>
+      <input type="number" id="missedRFPs">
+    </div>
 
-<label>Missed RFPs per month</label>
-<input type="number" id="missedRFPs">
+    <div class="input-group">
+      <label>Days until decision</label>
+      <input type="number" id="daysUntilDecision">
+    </div>
+  </div>
 
-<label>Days until decision</label>
-<input type="number" id="daysUntilDecision">
+  <!-- Buttons -->
+  <button onclick="calculateROI()">Calculate</button>
+  <button onclick="loadDefaults()">Use Conservative Defaults</button>
 
-<!-- Buttons -->
-<button onclick="calculateROI()">Calculate</button>
-<button onclick="loadDefaults()">Use Conservative Defaults</button>
+  <!-- Results -->
+  <div class="result" id="result"></div>
+  <div id="chartContainer"></div>
+  <button onclick="document.querySelector('.success-plan').style.display='block'">Create Success Plan</button>
 
-<!-- Results -->
-<div class="result" id="result"></div>
-<canvas id="lossChart" width="600" height="300"></canvas>
-<button onclick="document.querySelector('.success-plan').style.display='block'">Create Success Plan</button>
+  <!-- Success Plan Builder -->
+  <div class="success-plan">
+    <h3>Mutual Success Plan</h3>
+    <label>Decision Maker</label>
+    <input id="decisionMaker" placeholder="Name – Role">
 
-<!-- Success Plan Builder -->
-<div class="success-plan">
-  <h3>Mutual Success Plan</h3>
-  <label>Decision Maker</label>
-  <input id="decisionMaker" placeholder="Name – Role">
+    <label>Champion</label>
+    <input id="champion" placeholder="Name – Role">
 
-  <label>Champion</label>
-  <input id="champion" placeholder="Name – Role">
+    <label>Security Contact</label>
+    <input id="securityContact" placeholder="Name – Role">
 
-  <label>Security Contact</label>
-  <input id="securityContact" placeholder="Name – Role">
+    <label>Legal Contact</label>
+    <input id="legalContact" placeholder="Name – Role">
 
-  <label>Legal Contact</label>
-  <input id="legalContact" placeholder="Name – Role">
+    <label>Additional Influencers</label>
+    <textarea id="influencers"></textarea>
 
-  <label>Additional Influencers</label>
-  <textarea id="influencers"></textarea>
+    <label>Risks or Roadblocks</label>
+    <textarea id="risks"></textarea>
 
-  <label>Risks or Roadblocks</label>
-  <textarea id="risks"></textarea>
+    <label>Second Demo Date</label>
+    <input type="date" id="demoDate">
 
-  <label>Second Demo Date</label>
-  <input type="date" id="demoDate">
+    <label>Security Review Date</label>
+    <input type="date" id="securityDate">
 
-  <label>Security Review Date</label>
-  <input type="date" id="securityDate">
+    <label>Legal Review Date</label>
+    <input type="date" id="legalDate">
 
-  <label>Legal Review Date</label>
-  <input type="date" id="legalDate">
+    <label>Decision Date</label>
+    <input type="date" id="decisionDate">
 
-  <label>Decision Date</label>
-  <input type="date" id="decisionDate">
+    <button onclick="generateSuccessPlan()">Generate Success Plan</button>
+    <button onclick="generateEmailSummary()">Generate Email Summary</button>
+    <button onclick="exportSectionsAsImages()">Export Sections as Images</button>
+    <a id="downloadLink" style="display:none; margin-left:10px;" download="ROI_Summary.html">Download HTML Summary</a>
 
-  <button onclick="generateSuccessPlan()">Generate Success Plan</button>
-  <button onclick="generateEmailSummary()">Generate Email Summary</button>
-  <a id="downloadLink" style="display:none; margin-left:10px;" download="ROI_Summary.html">Download HTML Summary</a>
-
-  <div id="planSummary"></div>
-</div>
+    <div id="planSummary"></div>
+  </div>
 
 
-<!-- Email Summary Output -->
-<div id="emailSummaryWrapper">
-  <h3>Email-Friendly Summary</h3>
-  <textarea id="emailSummary"></textarea>
+  <!-- Email Summary Output -->
+  <div id="emailSummaryWrapper">
+    <h3>Email-Friendly Summary</h3>
+    <textarea id="emailSummary"></textarea>
+  </div>
+
+  <!-- Hidden containers for image generation -->
+  <div id="costImpactSection" style="display: none; background: white; padding: 20px; width: 800px;">
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="result-value" id="costImpactLaborSavings">$0</div>
+        <div class="result-label">Labor Savings</div>
+      </div>
+      <div class="result-card">
+        <div class="result-value" id="costImpactLostRevenue">$0</div>
+        <div class="result-label">Missed Revenue</div>
+      </div>
+      <div class="result-card primary">
+        <div class="result-value" id="costImpactTotalLoss">$0</div>
+        <div class="result-label">Total Monthly Loss</div>
+      </div>
+    </div>
+    <div class="callout-box">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <div class="callout-title">Cost of Inaction</div>
+        <div class="callout-text">You are currently losing <span class="callout-value" id="costImpactDailyLoss">$0</span> every day you don't automate your RFP process.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chartsSection" style="display: none; background: white; padding: 20px; width: 800px;">
+    <div class="chart-row">
+      <div class="chart-column">
+        <div class="chart-title">Cost Breakdown</div>
+        <canvas id="costBreakdownChartExport" width="400" height="300"></canvas>
+      </div>
+      <div class="chart-column">
+        <div class="chart-title">Projected Loss Over Time</div>
+        <canvas id="projectionsChartExport" width="400" height="300"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-column">
+        <div class="chart-title">Opportunity Analysis</div>
+        <canvas id="opportunityChartExport" width="400" height="300"></canvas>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-let chartInstance;
+let chartInstances = {};
+let successPlanText = '';
+
+// Global variables for calculation results
+let globalLaborSavings = 0;
+let globalLostRevenue = 0;
+let globalTotalMonthlyLoss = 0;
 let globalDailyLoss = 0;
 let globalProjectedLoss = 0;
-let successPlanText = '';
 
 function loadDefaults() {
   document.getElementById('rfpsPerMonth').value = 4;
@@ -145,40 +839,313 @@ function calculateROI() {
   const dailyLoss = totalMonthlyLoss / 30;
   const projectedLoss = dailyLoss * daysUntilDecision;
 
+  // Store results in global variables
+  globalLaborSavings = laborSavings;
+  globalLostRevenue = lostRevenue;
+  globalTotalMonthlyLoss = totalMonthlyLoss;
   globalDailyLoss = dailyLoss;
   globalProjectedLoss = projectedLoss;
 
   document.querySelector('.result').style.display = 'block';
   document.getElementById('result').innerHTML = `
-    <strong>Results Summary:</strong><br><br>
-    <strong>Estimated Daily Cost of Inaction:</strong> $${dailyLoss.toFixed(2)}<br>
-    <strong>Projected Revenue Lost by Decision Date:</strong> $${projectedLoss.toFixed(2)}<br><br>
-    <u>Calculation Breakdown:</u><br>
-    <strong>1. Labor Savings:</strong><br>
-    = ${timeSavingsPerRFP} hrs × ${teamSize} people × $${hourlyCost}/hr × ${rfpsPerMonth} RFPs<br>
-    = <strong>$${laborSavings.toFixed(2)}</strong><br><br>
-    <strong>2. Missed Revenue:</strong><br>
-    = ${missedRFPs} × ${(winRate * 100).toFixed(1)}% win rate × $${dealSize}<br>
-    = <strong>$${lostRevenue.toFixed(2)}</strong><br><br>
-    <strong>3. Total Monthly Loss:</strong> $${totalMonthlyLoss.toFixed(2)}<br>
-    <strong>4. Daily Loss:</strong> $${dailyLoss.toFixed(2)}<br>
-    <strong>5. Projected Loss over ${daysUntilDecision} days:</strong> $${projectedLoss.toFixed(2)}<br>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="result-value">$${formatCurrency(laborSavings)}</div>
+        <div class="result-label">Labor Savings</div>
+      </div>
+      <div class="result-card">
+        <div class="result-value">$${formatCurrency(lostRevenue)}</div>
+        <div class="result-label">Missed Revenue</div>
+      </div>
+      <div class="result-card primary">
+        <div class="result-value">$${formatCurrency(totalMonthlyLoss)}</div>
+        <div class="result-label">Total Monthly Loss</div>
+      </div>
+    </div>
+
+    <div class="calculation-details">
+      <h3>Calculation Breakdown</h3>
+      <div class="calculation-step">
+        <strong>1. Labor Savings:</strong><br>
+        ${timeSavingsPerRFP} hrs × ${teamSize} people × $${hourlyCost}/hr × ${rfpsPerMonth} RFPs<br>
+        = <strong>$${formatCurrency(laborSavings)}</strong>
+      </div>
+      <div class="calculation-step">
+        <strong>2. Missed Revenue:</strong><br>
+        ${missedRFPs} × ${(winRate * 100).toFixed(1)}% win rate × $${dealSize}<br>
+        = <strong>$${formatCurrency(lostRevenue)}</strong>
+      </div>
+      <div class="calculation-step">
+        <strong>3. Total Monthly Loss:</strong> $${formatCurrency(totalMonthlyLoss)}<br>
+        <strong>4. Daily Loss:</strong> $${formatCurrency(dailyLoss)}<br>
+        <strong>5. Projected Loss over ${daysUntilDecision} days:</strong> $${formatCurrency(projectedLoss)}
+      </div>
+    </div>
+
+    <div class="callout-box">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <div class="callout-title">Cost of Inaction</div>
+        <div class="callout-text">You are currently losing <span class="callout-value">$${formatCurrency(dailyLoss)}</span> every day you don't automate your RFP process.</div>
+      </div>
+    </div>
   `;
 
-  const ctx = document.getElementById('lossChart').getContext('2d');
-  if (chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(ctx, {
-    type: 'bar',
+  // Create a container for multiple charts
+  const chartContainer = document.getElementById('chartContainer');
+  chartContainer.style.display = 'block';
+  chartContainer.innerHTML = `
+    <div class="chart-row">
+      <div class="chart-column">
+        <div class="chart-title">Cost Breakdown</div>
+        <canvas id="costBreakdownChart" width="400" height="300"></canvas>
+      </div>
+      <div class="chart-column">
+        <div class="chart-title">Projected Loss Over Time</div>
+        <canvas id="projectionsChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-column">
+        <div class="chart-title">Opportunity Analysis</div>
+        <canvas id="opportunityChart" width="400" height="300"></canvas>
+      </div>
+      <div class="chart-column">
+        <div class="chart-stats">
+          <div class="stat-card">
+            <div class="stat-value">$${formatCurrency(dailyLoss)}</div>
+            <div class="stat-label">Daily Cost</div>
+          </div>
+          <div class="stat-card highlight">
+            <div class="stat-value">$${formatCurrency(projectedLoss)}</div>
+            <div class="stat-label">Projected Loss</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${daysUntilDecision}</div>
+            <div class="stat-label">Days to Decision</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Common Chart Options
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        backgroundColor: 'rgba(12, 37, 66, 0.8)',
+        titleFont: {
+          size: 14,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 13
+        },
+        padding: 12,
+        borderColor: 'rgba(255, 107, 44, 0.3)',
+        borderWidth: 1,
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+              }).format(context.parsed.y);
+            }
+            return label;
+          }
+        }
+      },
+      legend: {
+        position: 'bottom',
+        labels: {
+          font: {
+            size: 12
+          },
+          padding: 15
+        }
+      }
+    }
+  };
+
+  // Chart 1: Cost Breakdown (Doughnut Chart)
+  const breakdownCtx = document.getElementById('costBreakdownChart').getContext('2d');
+  new Chart(breakdownCtx, {
+    type: 'doughnut',
     data: {
-      labels: ['Labor Savings', 'Missed Revenue', 'Projected Loss'],
+      labels: ['Labor Savings', 'Missed Revenue'],
       datasets: [{
-        label: 'Loss ($)',
-        data: [laborSavings, lostRevenue, projectedLoss],
-        backgroundColor: ['#f39c12', '#e74c3c', '#9b59b6']
+        data: [laborSavings, lostRevenue],
+        backgroundColor: ['#FF6B2C', '#0C2542'],
+        borderColor: ['#ffffff'],
+        borderWidth: 2,
+        hoverOffset: 10
       }]
     },
-    options: { scales: { y: { beginAtZero: true } } }
+    options: {
+      ...commonOptions,
+      cutout: '65%',
+      plugins: {
+        ...commonOptions.plugins,
+        tooltip: {
+          ...commonOptions.plugins.tooltip,
+          callbacks: {
+            label: function(context) {
+              const value = context.raw;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = Math.round((value / total) * 100);
+              return ` ${context.label}: $${formatCurrency(value)} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
   });
+
+  // Chart 2: Time Series Projection
+  const timeLabels = [];
+  const projectionData = [];
+  const intervalDays = Math.max(1, Math.floor(daysUntilDecision / 10));
+  
+  for (let day = 0; day <= daysUntilDecision; day += intervalDays) {
+    timeLabels.push(`Day ${day}`);
+    projectionData.push(dailyLoss * day);
+  }
+  
+  // Ensure the last day is always included
+  if (timeLabels[timeLabels.length - 1] !== `Day ${daysUntilDecision}`) {
+    timeLabels.push(`Day ${daysUntilDecision}`);
+    projectionData.push(projectedLoss);
+  }
+  
+  const projectionCtx = document.getElementById('projectionsChart').getContext('2d');
+  new Chart(projectionCtx, {
+    type: 'line',
+    data: {
+      labels: timeLabels,
+      datasets: [{
+        label: 'Projected Loss',
+        data: projectionData,
+        backgroundColor: 'rgba(255, 107, 44, 0.2)',
+        borderColor: '#FF6B2C',
+        borderWidth: 3,
+        tension: 0.4,
+        fill: true,
+        pointRadius: 4,
+        pointBackgroundColor: '#FF6B2C',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+      }]
+    },
+    options: {
+      ...commonOptions,
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            callback: function(value) {
+              return '$' + formatCurrency(value);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Chart 3: Opportunity Analysis
+  const opportunityCtx = document.getElementById('opportunityChart').getContext('2d');
+  new Chart(opportunityCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Current', 'With Solution'],
+      datasets: [
+        {
+          label: 'Lost Revenue (Without Solution)',
+          data: [
+            lostRevenue,
+            0
+          ],
+          backgroundColor: '#F56565',
+          stack: 'Stack 0',
+        },
+        {
+          label: 'Additional Revenue (With Solution)',
+          data: [
+            0,
+            lostRevenue + (timeSavingsPerRFP * rfpsPerMonth * teamSize / hoursPerRFP) * winRate * dealSize
+          ],
+          backgroundColor: '#48BB78',
+          stack: 'Stack 0',
+        }
+      ]
+    },
+    options: {
+      ...commonOptions,
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Revenue ($)',
+            font: {
+              weight: 'bold'
+            }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            callback: function(value) {
+              return '$' + formatCurrency(value);
+            }
+          }
+        }
+      },
+      plugins: {
+        ...commonOptions.plugins,
+        tooltip: {
+          ...commonOptions.plugins.tooltip,
+          callbacks: {
+            label: function(context) {
+              const label = context.dataset.label || '';
+              const value = context.parsed.y;
+              return `${label}: $${formatCurrency(value)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Helper function for formatting currency values
+function formatCurrency(value) {
+  if (value >= 1000000) {
+    return (value / 1000000).toFixed(1) + 'M';
+  } else if (value >= 1000) {
+    return (value / 1000).toFixed(1) + 'K';
+  } else {
+    return value.toFixed(2);
+  }
 }
 
 function generateSuccessPlan() {
@@ -197,58 +1164,261 @@ function generateSuccessPlan() {
   const projectedLossFormatted = globalProjectedLoss ? `$${globalProjectedLoss.toFixed(2)}` : 'N/A';
 
   const successPlanHTML = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-      <h2 style="font-weight: 700; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 16px;">Mutual Success Plan Summary</h2>
-
-      <section style="margin-bottom: 20px;">
-        <h3 style="font-weight: 600; margin-bottom: 6px;">Cost of Inaction</h3>
-        <p>Estimated daily loss related to RFP inefficiency: <strong>${dailyLossFormatted} / day</strong></p>
-        <p>Projected total loss by decision day: <strong>${projectedLossFormatted}</strong></p>
-      </section>
-
-      <section style="margin-bottom: 20px;">
-        <h3 style="font-weight: 600; margin-bottom: 6px;">Key Stakeholders</h3>
-        <ul style="list-style-type: disc; padding-left: 20px;">
-          <li><strong>Decision Maker:</strong> ${decisionMaker}</li>
-          <li><strong>Champion:</strong> ${champion}</li>
-          <li><strong>Security Contact:</strong> ${securityContact}</li>
-          <li><strong>Legal Contact:</strong> ${legalContact}</li>
-          ${influencers.trim() !== '' ? `<li><strong>Additional Influencers:</strong> ${influencers}</li>` : ''}
+    <div class="success-plan-grid">
+      <div class="success-plan-card">
+        <h3>Key Stakeholders</h3>
+        <ul class="stakeholder-list">
+          <li class="stakeholder-item">
+            <span class="stakeholder-label">Decision Maker:</span>
+            <span class="stakeholder-value">${decisionMaker}</span>
+          </li>
+          <li class="stakeholder-item">
+            <span class="stakeholder-label">Champion:</span>
+            <span class="stakeholder-value">${champion}</span>
+          </li>
+          <li class="stakeholder-item">
+            <span class="stakeholder-label">Security Contact:</span>
+            <span class="stakeholder-value">${securityContact}</span>
+          </li>
+          <li class="stakeholder-item">
+            <span class="stakeholder-label">Legal Contact:</span>
+            <span class="stakeholder-value">${legalContact}</span>
+          </li>
+          ${influencers.trim() !== '' ? `
+          <li class="stakeholder-item">
+            <span class="stakeholder-label">Additional Influencers:</span>
+            <span class="stakeholder-value">${influencers}</span>
+          </li>
+          ` : ''}
         </ul>
-      </section>
+      </div>
 
-      <section style="margin-bottom: 20px;">
-        <h3 style="font-weight: 600; margin-bottom: 6px;">Milestones & Timeline</h3>
-        <ul style="list-style-type: none; padding-left: 0;">
-          <li><strong>Second Demo:</strong> ${demoDate}</li>
-          <li><strong>Security Review:</strong> ${securityDate}</li>
-          <li><strong>Legal Review:</strong> ${legalDate}</li>
-          <li><strong>Target Decision Date:</strong> ${decisionDate}</li>
-        </ul>
-      </section>
+      <div class="success-plan-card">
+        <h3>Timeline & Milestones</h3>
+        <div class="timeline-item">
+          <span class="timeline-date">Second Demo:</span>
+          <span class="timeline-label">${demoDate}</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-date">Security Review:</span>
+          <span class="timeline-label">${securityDate}</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-date">Legal Review:</span>
+          <span class="timeline-label">${legalDate}</span>
+        </div>
+        <div class="timeline-item">
+          <span class="timeline-date">Target Decision:</span>
+          <span class="timeline-label">${decisionDate}</span>
+        </div>
+      </div>
+    </div>
 
-      <section style="margin-bottom: 20px;">
-        <h3 style="font-weight: 600; margin-bottom: 6px;">Risks or Roadblocks</h3>
-        <p>${risks}</p>
-      </section>
+    <div class="risks-section">
+      <h3>Risks & Roadblocks</h3>
+      <p>${risks}</p>
+    </div>
+
+    <div class="callout-box" style="margin-top: 24px;">
+      <div class="callout-icon">💰</div>
+      <div class="callout-content">
+        <div class="callout-title">Current Cost Impact</div>
+        <div class="callout-text">Daily loss: <span class="callout-value">${dailyLossFormatted}</span> | Projected loss by decision date: <span class="callout-value">${projectedLossFormatted}</span></div>
+      </div>
     </div>
   `;
 
   document.getElementById('planSummary').innerHTML = successPlanHTML;
 }
 
-
-
 function generateEmailSummary() {
-  const summary = document.getElementById('result').innerText + '\n' + successPlanText;
-  document.getElementById('emailSummaryWrapper').style.display = 'block';
-  document.getElementById('emailSummary').value = summary;
+  const emailContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #0C2542;">
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="rocket.png" alt="Logo" style="max-width: 180px; margin-bottom: 20px;">
+        <h1 style="color: #0C2542; font-size: 24px; margin: 0;">ROI Analysis Summary</h1>
+        <p style="color: #718096; font-size: 14px; margin-top: 10px;">Generated on ${new Date().toLocaleDateString()}</p>
+      </div>
 
-  const blob = new Blob([summary], { type: 'text/html' });
+      <!-- Cost Impact Section -->
+      <div style="background-color: #F7FAFC; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+        <h2 style="color: #0C2542; font-size: 20px; margin: 0 0 20px 0;">Cost Impact Analysis</h2>
+        
+        <div style="display: inline-block; width: 100%; margin-bottom: 20px;">
+          <div style="float: left; width: 33%; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #FF6B2C;">$${formatCurrency(globalLaborSavings)}</div>
+            <div style="color: #718096; font-size: 14px;">Labor Savings</div>
+          </div>
+          <div style="float: left; width: 33%; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #FF6B2C;">$${formatCurrency(globalLostRevenue)}</div>
+            <div style="color: #718096; font-size: 14px;">Missed Revenue</div>
+          </div>
+          <div style="float: left; width: 33%; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #FF6B2C;">$${formatCurrency(globalTotalMonthlyLoss)}</div>
+            <div style="color: #718096; font-size: 14px;">Total Monthly Loss</div>
+          </div>
+        </div>
+        
+        <div style="clear: both;"></div>
+        
+        <div style="background-color: #FFF5F5; border-left: 4px solid #F56565; padding: 15px; margin-top: 20px;">
+          <div style="color: #F56565; font-weight: bold; margin-bottom: 5px;">Cost of Inaction</div>
+          <div style="color: #718096;">You are currently losing <span style="color: #F56565; font-weight: bold;">$${formatCurrency(globalDailyLoss)}</span> every day you don't automate your RFP process.</div>
+        </div>
+      </div>
+
+      <!-- Success Plan Section -->
+      <div style="background-color: #F7FAFC; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+        <h2 style="color: #0C2542; font-size: 20px; margin: 0 0 20px 0;">Success Plan</h2>
+        
+        <!-- Stakeholders -->
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: #FF6B2C; font-size: 16px; margin: 0 0 10px 0;">Key Stakeholders</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Decision Maker:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('decisionMaker').value || 'Not provided'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Champion:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('champion').value || 'Not provided'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Security Contact:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('securityContact').value || 'Not provided'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Legal Contact:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('legalContact').value || 'Not provided'}</td>
+            </tr>
+            ${document.getElementById('influencers').value ? `
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Additional Influencers:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('influencers').value}</td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+
+        <!-- Timeline -->
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: #FF6B2C; font-size: 16px; margin: 0 0 10px 0;">Timeline & Milestones</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Second Demo:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('demoDate').value || 'Not set'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Security Review:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('securityDate').value || 'Not set'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Legal Review:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('legalDate').value || 'Not set'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Target Decision:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('decisionDate').value || 'Not set'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Risks -->
+        <div style="background-color: #FFF5F5; border-left: 4px solid #F56565; padding: 15px;">
+          <h3 style="color: #F56565; font-size: 16px; margin: 0 0 10px 0;">Risks & Roadblocks</h3>
+          <div style="color: #718096;">${document.getElementById('risks').value || 'None provided'}</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align: center; color: #718096; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
+        Generated by Rocket PND ROI Calculator
+      </div>
+    </div>
+  `;
+
+  document.getElementById('emailSummaryWrapper').style.display = 'block';
+  document.getElementById('emailSummary').value = emailContent;
+
+  const blob = new Blob([emailContent], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const link = document.getElementById('downloadLink');
   link.href = url;
-  link.style.display = 'inline';
+  link.style.display = 'inline-block';
+}
+
+function updateHiddenSections() {
+  // Update cost impact section
+  document.getElementById('costImpactLaborSavings').textContent = `$${formatCurrency(globalLaborSavings)}`;
+  document.getElementById('costImpactLostRevenue').textContent = `$${formatCurrency(globalLostRevenue)}`;
+  document.getElementById('costImpactTotalLoss').textContent = `$${formatCurrency(globalTotalMonthlyLoss)}`;
+  document.getElementById('costImpactDailyLoss').textContent = `$${formatCurrency(globalDailyLoss)}`;
+
+  // Clone and update charts
+  const originalCharts = {
+    costBreakdown: document.getElementById('costBreakdownChart'),
+    projections: document.getElementById('projectionsChart'),
+    opportunity: document.getElementById('opportunityChart')
+  };
+
+  const exportCharts = {
+    costBreakdown: document.getElementById('costBreakdownChartExport'),
+    projections: document.getElementById('projectionsChartExport'),
+    opportunity: document.getElementById('opportunityChartExport')
+  };
+
+  // Copy chart data to export canvases
+  Object.keys(originalCharts).forEach(key => {
+    if (originalCharts[key] && exportCharts[key]) {
+      const originalCtx = originalCharts[key].getContext('2d');
+      const exportCtx = exportCharts[key].getContext('2d');
+      exportCtx.drawImage(originalCharts[key], 0, 0);
+    }
+  });
+}
+
+async function exportSectionsAsImages() {
+  // Update the hidden sections with current data
+  updateHiddenSections();
+  
+  // Export each section
+  const sections = [
+    { id: 'costImpactSection', filename: 'cost-impact.png' },
+    { id: 'chartsSection', filename: 'charts.png' },
+    { id: 'planSummary', filename: 'success-plan.png' }
+  ];
+
+  for (const section of sections) {
+    const element = document.getElementById(section.id);
+    if (element) {
+      try {
+        // Temporarily show the element for rendering
+        element.style.display = 'block';
+        
+        const canvas = await html2canvas(element, {
+          scale: 2, // Higher quality
+          backgroundColor: '#ffffff',
+          logging: false,
+          useCORS: true,
+          allowTaint: true
+        });
+        
+        // Hide the element again
+        element.style.display = 'none';
+        
+        // Convert to image and download
+        const link = document.createElement('a');
+        link.download = section.filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error(`Error exporting ${section.id}:`, error);
+        // Make sure to hide the element even if there's an error
+        element.style.display = 'none';
+      }
+    }
+  }
 }
 </script>
 </body>
