@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RFP ROI Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 700px; margin: auto; }
+    label { display: block; margin-top: 12px; }
+    input { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
+    .result { margin-top: 24px; font-size: 16px; background: #f7f7f7; padding: 20px; border-radius: 8px; }
+    .result strong { font-size: 18px; }
+    canvas { margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+  <h2>RFP ROI Calculator</h2>
+
+  <!-- Input Fields -->
+  <label>1. RFPs per month
+    <input type="number" id="rfpsPerMonth">
+  </label>
+
+  <label>2. Current win rate (%) 
+    <input type="number" id="winRate">
+  </label>
+
+  <label>3. Average deal size ($) 
+    <input type="number" id="dealSize">
+  </label>
+
+  <label>4. Hours to complete one RFP 
+    <input type="number" id="hoursPerRFP">
+  </label>
+
+  <label>5. Team members per RFP 
+    <input type="number" id="teamSize">
+  </label>
+
+  <label>6. Avg hourly cost per team member ($) 
+    <input type="number" id="hourlyCost" value="85">
+  </label>
+
+  <label>7. % of reusable content (0–100)
+    <input type="number" id="reusePercent">
+  </label>
+
+  <label>8. Ideal vs current time savings per RFP (hours)
+    <input type="number" id="timeSavingsPerRFP">
+  </label>
+
+  <label>9. Missed RFPs per month due to resource limits
+    <input type="number" id="missedRFPs">
+  </label>
+
+  <label>10. Days until decision
+    <input type="number" id="daysUntilDecision">
+  </label>
+
+  <button onclick="calculateROI()">Calculate</button>
+  <button onclick="loadDefaults()" style="margin-left: 10px;">Use Conservative Defaults</button>
+
+  <!-- Results Section -->
+  <div class="result" id="result"></div>
+
+  <!-- Graph Section -->
+  <canvas id="lossChart" width="600" height="300"></canvas>
+
+  <script>
+    let chartInstance;
+
+    function loadDefaults() {
+        document.getElementById('rfpsPerMonth').value = 4;
+        document.getElementById('winRate').value = 20;
+        document.getElementById('dealSize').value = 50000;
+        document.getElementById('hoursPerRFP').value = 30;
+        document.getElementById('teamSize').value = 3;
+        document.getElementById('hourlyCost').value = 85;
+        document.getElementById('reusePercent').value = 30;
+        document.getElementById('timeSavingsPerRFP').value = 10;
+        document.getElementById('missedRFPs').value = 1;
+        document.getElementById('daysUntilDecision').value = 14;
+    }
+    function calculateROI() {
+      const rfpsPerMonth = +document.getElementById('rfpsPerMonth').value;
+      const winRate = +document.getElementById('winRate').value / 100;
+      const dealSize = +document.getElementById('dealSize').value;
+      const hoursPerRFP = +document.getElementById('hoursPerRFP').value;
+      const teamSize = +document.getElementById('teamSize').value;
+      const hourlyCost = +document.getElementById('hourlyCost').value;
+      const reusePercent = +document.getElementById('reusePercent').value / 100;
+      const timeSavingsPerRFP = +document.getElementById('timeSavingsPerRFP').value;
+      const missedRFPs = +document.getElementById('missedRFPs').value;
+      const daysUntilDecision = +document.getElementById('daysUntilDecision').value;
+
+      const laborSavings = timeSavingsPerRFP * teamSize * hourlyCost * rfpsPerMonth;
+      const lostRevenue = missedRFPs * winRate * dealSize;
+      const totalMonthlyLoss = laborSavings + lostRevenue;
+      const dailyLoss = totalMonthlyLoss / 30;
+      const projectedLoss = dailyLoss * daysUntilDecision;
+
+      // Update text results
+      document.getElementById('result').innerHTML = `
+        <strong>Results Summary:</strong><br><br>
+        <strong>Estimated Daily Cost of Inaction:</strong> $${dailyLoss.toFixed(2)}<br>
+        <strong>Projected Revenue Lost by Decision Date:</strong> $${projectedLoss.toFixed(2)}<br><br>
+
+        <u>Calculation Breakdown:</u><br>
+
+        <strong>1. Labor Cost Savings from Time Efficiency:</strong><br>
+        = ${timeSavingsPerRFP} hrs (saved per RFP) × ${teamSize} (team members) × $${hourlyCost} (hourly cost) × ${rfpsPerMonth} (RFPs/month)<br>
+        = <strong>$${laborSavings.toFixed(2)}</strong><br><br>
+
+        <strong>2. Missed Revenue Due to Resource Constraints:</strong><br>
+        = ${missedRFPs} (missed RFPs) × ${(winRate * 100).toFixed(1)}% (win rate) × $${dealSize} (average deal size)<br>
+        = <strong>$${lostRevenue.toFixed(2)}</strong><br><br>
+
+        <strong>3. Combined Monthly Loss:</strong><br>
+        = $${laborSavings.toFixed(2)} (labor savings) + $${lostRevenue.toFixed(2)} (missed revenue)<br>
+        = <strong>$${totalMonthlyLoss.toFixed(2)}</strong><br><br>
+
+        <strong>4. Daily Loss:</strong><br>
+        = $${totalMonthlyLoss.toFixed(2)} ÷ 30<br>
+        = <strong>$${dailyLoss.toFixed(2)}</strong><br><br>
+
+        <strong>5. Projected Loss by Decision Date:</strong><br>
+        = $${dailyLoss.toFixed(2)} × ${daysUntilDecision} (days)<br>
+        = <strong>$${projectedLoss.toFixed(2)}</strong>
+        `;
+
+      // Render chart
+      const ctx = document.getElementById('lossChart').getContext('2d');
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Daily Loss', `Loss Over ${daysUntilDecision} Days`],
+          datasets: [{
+            label: 'Estimated Loss ($)',
+            data: [dailyLoss, projectedLoss],
+            backgroundColor: ['#ff6384', '#ff9f40']
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `$${context.raw.toFixed(2)}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

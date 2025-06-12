@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RFP ROI Calculator & Success Plan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+    label { display: block; margin-top: 16px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 8px; margin-top: 4px; }
+    .helper { font-size: 13px; color: #666; margin-bottom: 8px; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; margin-right: 10px; }
+    .result, .success-plan { margin-top: 24px; font-size: 16px; background: #f7f7f7; padding: 20px; border-radius: 8px; display: none; }
+    .result strong, .success-plan strong { font-size: 18px; }
+    canvas { margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+<h2>RFP ROI Calculator</h2>
+
+<!-- Input Fields -->
+<label>RFPs per month</label>
+<input type="number" id="rfpsPerMonth">
+
+
+<label>Win rate (%)</label>
+<input type="number" id="winRate">
+
+<label>Average deal size ($)</label>
+<input type="number" id="dealSize">
+
+<label>Hours to complete one RFP</label>
+<input type="number" id="hoursPerRFP">
+>
+
+<label>Team members per RFP</label>
+<input type="number" id="teamSize">
+
+
+<label>Avg hourly cost ($)</label>
+<input type="number" id="hourlyCost">
+
+
+<label>Reusable content (%)</label>
+<input type="number" id="reusePercent">
+
+
+<label>Time saved per RFP (hrs)</label>
+<input type="number" id="timeSavingsPerRFP">
+
+
+<label>Missed RFPs per month</label>
+<input type="number" id="missedRFPs">
+
+
+<label>Days until decision</label>
+<input type="number" id="daysUntilDecision">
+
+
+<!-- Buttons -->
+<button onclick="calculateROI()">Calculate</button>
+<button onclick="loadDefaults()">Use Conservative Defaults</button>
+<button onclick="document.querySelector('.success-plan').style.display='block'">Create Success Plan</button>
+
+<!-- Results -->
+<div class="result" id="result"></div>
+<canvas id="lossChart" width="600" height="300"></canvas>
+
+<!-- Success Plan Builder -->
+<div class="success-plan">
+  <h3>Mutual Success Plan</h3>
+  <label>Decision Maker</label>
+  <input id="decisionMaker" placeholder="Name – Role">
+
+  <label>Champion</label>
+  <input id="champion" placeholder="Name – Role">
+
+  <label>Security Contact</label>
+  <input id="securityContact" placeholder="Name – Role">
+
+  <label>Legal Contact</label>
+  <input id="legalContact" placeholder="Name – Role">
+
+  <label>Additional Influencers</label>
+  <textarea id="influencers"></textarea>
+
+  <label>Risks or Roadblocks</label>
+  <textarea id="risks"></textarea>
+
+  <button onclick="generateSuccessPlan()">Generate Success Plan Summary</button>
+
+  <div id="planSummary"></div>
+</div>
+
+<script>
+let chartInstance;
+
+function loadDefaults() {
+  document.getElementById('rfpsPerMonth').value = 4;
+  document.getElementById('winRate').value = 20;
+  document.getElementById('dealSize').value = 50000;
+  document.getElementById('hoursPerRFP').value = 30;
+  document.getElementById('teamSize').value = 3;
+  document.getElementById('hourlyCost').value = 85;
+  document.getElementById('reusePercent').value = 30;
+  document.getElementById('timeSavingsPerRFP').value = 10;
+  document.getElementById('missedRFPs').value = 1;
+  document.getElementById('daysUntilDecision').value = 14;
+}
+
+let globalDailyLoss = 0;
+let globalProjectedLoss = 0;
+
+function calculateROI() {
+  const rfpsPerMonth = +document.getElementById('rfpsPerMonth').value;
+  const winRate = +document.getElementById('winRate').value / 100;
+  const dealSize = +document.getElementById('dealSize').value;
+  const hoursPerRFP = +document.getElementById('hoursPerRFP').value;
+  const teamSize = +document.getElementById('teamSize').value;
+  const hourlyCost = +document.getElementById('hourlyCost').value;
+  const reusePercent = +document.getElementById('reusePercent').value / 100;
+  const timeSavingsPerRFP = +document.getElementById('timeSavingsPerRFP').value;
+  const missedRFPs = +document.getElementById('missedRFPs').value;
+  const daysUntilDecision = +document.getElementById('daysUntilDecision').value;
+
+  const laborSavings = timeSavingsPerRFP * teamSize * hourlyCost * rfpsPerMonth;
+  const lostRevenue = missedRFPs * winRate * dealSize;
+  const totalMonthlyLoss = laborSavings + lostRevenue;
+  const dailyLoss = totalMonthlyLoss / 30;
+  const projectedLoss = dailyLoss * daysUntilDecision;
+
+  globalDailyLoss = dailyLoss;
+  globalProjectedLoss = projectedLoss;
+
+  document.querySelector('.result').style.display = 'block';
+  document.getElementById('result').innerHTML = `
+    <strong>Results Summary:</strong><br><br>
+    <strong>Estimated Daily Cost of Inaction:</strong> $${dailyLoss.toFixed(2)}<br>
+    <strong>Projected Revenue Lost by Decision Date:</strong> $${projectedLoss.toFixed(2)}<br><br>
+    <u>Calculation Breakdown:</u><br>
+    <strong>1. Labor Savings:</strong><br>
+    = ${timeSavingsPerRFP} hrs × ${teamSize} people × $${hourlyCost}/hr × ${rfpsPerMonth} RFPs<br>
+    = <strong>$${laborSavings.toFixed(2)}</strong><br><br>
+    <strong>2. Missed Revenue:</strong><br>
+    = ${missedRFPs} × ${(winRate * 100).toFixed(1)}% win rate × $${dealSize}<br>
+    = <strong>$${lostRevenue.toFixed(2)}</strong><br><br>
+    <strong>3. Total Monthly Loss:</strong> $${totalMonthlyLoss.toFixed(2)}<br>
+    <strong>4. Daily Loss:</strong> $${dailyLoss.toFixed(2)}<br>
+    <strong>5. Projected Loss over ${daysUntilDecision} days:</strong> $${projectedLoss.toFixed(2)}<br>
+  `;
+
+  const ctx = document.getElementById('lossChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Labor Savings', 'Missed Revenue', 'Projected Loss'],
+      datasets: [{
+        label: 'Loss ($)',
+        data: [laborSavings, lostRevenue, projectedLoss],
+        backgroundColor: ['#f39c12', '#e74c3c', '#9b59b6']
+      }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function generateSuccessPlan() {
+  const decisionMaker = document.getElementById('decisionMaker').value;
+  const champion = document.getElementById('champion').value;
+  const securityContact = document.getElementById('securityContact').value;
+  const legalContact = document.getElementById('legalContact').value;
+  const influencers = document.getElementById('influencers').value;
+  const risks = document.getElementById('risks').value;
+
+  document.getElementById('planSummary').innerHTML = `
+    <br><strong>📝 Mutual Success Plan Summary</strong><br><br>
+    <strong>Goal:</strong> Reduce RFP-related cost of inaction, currently estimated at <strong>$${globalDailyLoss.toFixed(2)}/day</strong> — projected to total <strong>$${globalProjectedLoss.toFixed(2)}</strong> by decision day.<br><br>
+
+    <strong>Key Stakeholders:</strong><br>
+    - Decision Maker: ${decisionMaker}<br>
+    - Champion: ${champion}<br>
+    - Security Contact: ${securityContact}<br>
+    - Legal Contact: ${legalContact}<br>
+    ${influencers ? `- Additional Influencers: ${influencers}<br>` : ''}<br>
+
+    <strong>Risks or Roadblocks:</strong><br>
+    ${risks || 'None provided'}<br>
+  `;
+}
+</script>
+</body>
+</html>
