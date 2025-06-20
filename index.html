@@ -670,12 +670,12 @@
     </div>
 
     <div class="input-group">
-      <label>Avg hourly cost ($)</label>
+      <label>Avg hourly cost per team member($)</label>
       <input type="number" id="hourlyCost">
     </div>
 
     <div class="input-group">
-      <label>Reusable content (%)</label>
+      <label>Reusable content per RFP (%)</label>
       <input type="number" id="reusePercent">
     </div>
 
@@ -710,7 +710,7 @@
     <label>Decision Maker</label>
     <input id="decisionMaker" placeholder="Name – Role">
 
-    <label>Champion</label>
+    <label>Main Contact</label>
     <input id="champion" placeholder="Name – Role">
 
     <label>Security Contact</label>
@@ -832,6 +832,11 @@ function calculateROI() {
   const timeSavingsPerRFP = +document.getElementById('timeSavingsPerRFP').value;
   const missedRFPs = +document.getElementById('missedRFPs').value;
   const daysUntilDecision = +document.getElementById('daysUntilDecision').value;
+
+  // Set the decision date automatically
+  const decisionDate = new Date();
+  decisionDate.setDate(decisionDate.getDate() + daysUntilDecision);
+  document.getElementById('decisionDate').value = decisionDate.toISOString().split('T')[0];
 
   const laborSavings = timeSavingsPerRFP * teamSize * hourlyCost * rfpsPerMonth;
   const lostRevenue = missedRFPs * winRate * dealSize;
@@ -1173,7 +1178,7 @@ function generateSuccessPlan() {
             <span class="stakeholder-value">${decisionMaker}</span>
           </li>
           <li class="stakeholder-item">
-            <span class="stakeholder-label">Champion:</span>
+            <span class="stakeholder-label">Main Contact:</span>
             <span class="stakeholder-value">${champion}</span>
           </li>
           <li class="stakeholder-item">
@@ -1281,7 +1286,7 @@ function generateEmailSummary() {
               <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('decisionMaker').value || 'Not provided'}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Champion:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #0C2542; font-weight: bold;">Main Contact:</td>
               <td style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; color: #718096;">${document.getElementById('champion').value || 'Not provided'}</td>
             </tr>
             <tr>
@@ -1420,6 +1425,14 @@ async function exportSectionsAsImages() {
     }
   }
 }
+
+// Add event listener for days until decision input
+document.getElementById('daysUntilDecision').addEventListener('input', function() {
+  const daysUntilDecision = +this.value;
+  const decisionDate = new Date();
+  decisionDate.setDate(decisionDate.getDate() + daysUntilDecision);
+  document.getElementById('decisionDate').value = decisionDate.toISOString().split('T')[0];
+});
 </script>
 </body>
 </html>
