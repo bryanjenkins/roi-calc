@@ -680,7 +680,7 @@
     </div>
 
     <div class="input-group">
-      <label>Time saved per RFP (hrs)</label>
+      <label>Time saved per Employee per RFP (hrs)</label>
       <input type="number" id="timeSavingsPerRFP">
     </div>
 
@@ -1088,10 +1088,10 @@ function calculateROI() {
           stack: 'Stack 0',
         },
         {
-          label: 'Additional Revenue (With Solution)',
+          label: 'Gained Revenue + Labor Savings (With Solution)',
           data: [
             0,
-            lostRevenue + (timeSavingsPerRFP * rfpsPerMonth * teamSize / hoursPerRFP) * winRate * dealSize
+            lostRevenue + laborSavings
           ],
           backgroundColor: '#48BB78',
           stack: 'Stack 0',
